@@ -1,0 +1,89 @@
+import cv2
+import numpy as np
+import pyautogui
+import mediapipe as mp
+
+wCam, hCam = 640, 480
+cap = cv2.VideoCapture(0)
+
+wScr, hScr = pyautogui.size()
+hScr = hScr + 1200
+wScr = wScr + 1500
+
+mp_draw = mp.solutions.drawing_utils
+mp_hand = mp.solutions.hands
+
+frameR = 100
+smoothening = 10
+plocX, plocY = 0, 0
+clocX, clocY = 0, 0
+with mp_hand.Hands(False, 1, 0.5, 0.5) as hands:
+                   
+ while True:
+    success, img = cap.read()
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img.flags.writeable = False
+    results = hands.process(img)
+    img.flags.writeable = True
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    lmList = []
+    if results.multi_hand_landmarks:
+         for hand_landmark in results.multi_hand_landmarks:
+              myHands = results.multi_hand_landmarks[0]
+              for id, lm in enumerate(myHands.landmark):
+                    h, w, c = img.shape
+                    cx, cy = int(lm.x*w), int(lm.y*h)
+                    lmList.append([id, cx, cy])
+                    mp_draw.draw_landmarks(
+                    img, hand_landmark, mp_hand.HAND_CONNECTIONS)
+    fingers = []
+
+    if len(lmList) != 0:
+        x1, y1 = lmList[8][1:]
+        x2, y2 = lmList[12][1:]
+        x3, y3 = lmList[4][1:]
+        
+
+        tipIds = [4, 8, 12, 16, 20]
+
+        if lmList[tipIds[0]][1] > lmList[tipIds[0] - 1][1]:
+            fingers.append(1)
+        else:
+            fingers.append(0)
+
+        for id in range(1, 5):
+            if lmList[tipIds[id]][2] < lmList[tipIds[id] - 2][2]:
+                fingers.append(1)
+            else:
+                fingers.append(0)
+
+        if fingers[1] == 1 and fingers[2] == 1:
+            cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+            r, t = 9, 2
+
+            x3 = np.interp(x1, (frameR, wCam - frameR), (0, wScr))
+            y3 = np.interp(y1, (frameR, hCam - frameR), (0, hScr))
+
+            clocX = plocX + (x3 - plocX) / smoothening
+            clocY = plocY + (y3 - plocY) / smoothening
+
+            if -55 > (clocX - plocX):
+
+                         pyautogui.press('right')
+
+            if -55 > (plocX - clocX):
+
+                         pyautogui.press('left')
+
+            if -39 > (clocY - plocY):
+
+                     pyautogui.press('up')
+
+            if -30 > (plocY - clocY):
+                     pyautogui.press('down')
+
+            cv2.circle(img, (x1, y1), 10, (0, 0, 255), cv2.FILLED)
+            plocX, plocY = clocX, clocY
+            cv2.imshow('Output', img)
+
+    cv2.waitKey(1)
