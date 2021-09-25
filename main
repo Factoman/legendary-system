@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import pyautogui
 import mediapipe as mp
-
+# FOR ANY DIFFICULTY VISIT MY YOUTUBE CHANNEL https://youtu.be/XZUQIyFnjJE
 wCam, hCam = 640, 480
 cap = cv2.VideoCapture(0)
 
